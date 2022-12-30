@@ -46,7 +46,15 @@ export const handler = async () => {
     await producer
       .send({
         topic: "test-topic",
-        messages: [{ value: "Hello Kafka", key: "key-1" }],
+        messages: [
+          {
+            value: "Hello Kafka",
+            key: "key-1",
+            headers: {
+              "header-1": "value-1",
+            },
+          },
+        ],
       })
       .then(console.log);
     await admin.disconnect();
