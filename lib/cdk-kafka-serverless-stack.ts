@@ -1,5 +1,7 @@
-import { Stack, StackProps } from "aws-cdk-lib";
+import { Duration, Stack, StackProps } from "aws-cdk-lib";
 import { SecurityGroup, SubnetType, Vpc } from "aws-cdk-lib/aws-ec2";
+import { Rule, Schedule } from "aws-cdk-lib/aws-events";
+import { LambdaFunction } from "aws-cdk-lib/aws-events-targets";
 import {
   ManagedPolicy,
   Policy,
@@ -8,6 +10,7 @@ import {
   ServicePrincipal,
 } from "aws-cdk-lib/aws-iam";
 import { Runtime, StartingPosition } from "aws-cdk-lib/aws-lambda";
+import { LambdaDestination } from "aws-cdk-lib/aws-lambda-destinations";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { CfnServerlessCluster } from "aws-cdk-lib/aws-msk";
 import { Construct } from "constructs";
@@ -108,6 +111,10 @@ export class CdkKafkaServerlessStack extends Stack {
     });
     clientPolicy.attachToRole(lambda.role!);
 
+    const rule = new Rule(this, "ProducerRule", {
+      schedule: Schedule.rate(Duration.minutes(1)),
+      targets: [new LambdaFunction(lambda), new LambdaFunction(lambda, {})],
+    });
     /**
      * Consumer
      */
@@ -115,6 +122,7 @@ export class CdkKafkaServerlessStack extends Stack {
       entry: "lib/consumer.ts",
       runtime: Runtime.NODEJS_16_X,
     });
+    clientPolicy.attachToRole(consumerLambda.role!);
     consumerLambda.role?.addManagedPolicy(
       ManagedPolicy.fromManagedPolicyArn(
         this,
